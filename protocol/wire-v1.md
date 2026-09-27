@@ -320,8 +320,12 @@ not override birth, stores, saved terminal screens, or other fallback contexts.
 ### Ground-item aura hints
 
 Semantic `dungeon.items` entries may include `aura`: `artifact`, `rune`,
-`cursed`, or an empty string. This is derived exclusively from the remembered
-object and known runes; curses take precedence over artifacts, then runes.
+`cursed`, or an empty string. For currently visible, uncovered ground items,
+this hint reflects actual properties, including unidentified runes, artifacts
+and curses. Curses take precedence over artifacts, then runes. Descriptions
+and inspection details still reflect player knowledge; the hint does not
+expose individual runes or identify the item. Engines must match each remembered
+item to its actual floor object and emit no hint for unseen or covered tiles.
 Clients must suppress the effect for unseen, hallucinated or actor-covered
 tiles. An absent field means no glow. The hint does not identify items or
 change lighting, visibility, RNG or gameplay.

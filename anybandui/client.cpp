@@ -961,7 +961,7 @@ struct UI {
      ImGui::Checkbox("Combat feedback",&draft_combat_animation);
      ImGui::Spacing(); AnybandUITheme::section("Dungeon indicators");
      ImGui::Checkbox("Ground item glow",&draft_item_glow);
-     if(ImGui::IsItemHovered()) ImGui::SetTooltip("Soft glows for known artifacts, runes and curses on visible ground items. Works with CRT effects off.");
+     if(ImGui::IsItemHovered()) ImGui::SetTooltip("Glows reveal magic on visible ground items, including unidentified runes, artifacts and curses. Item details remain unidentified. Works with CRT effects off.");
      ImGui::Checkbox("Unique enemy auras",&draft_presence.uniques);
      if(ImGui::IsItemHovered()) ImGui::SetTooltip("Broken halos for visible uniques; Morgoth has a crimson corona. Arrival, waking and injury intensify the effect.");
      ImGui::Checkbox("Stairway glow",&draft_presence.stairs);
