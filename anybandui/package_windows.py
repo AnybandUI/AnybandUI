@@ -32,13 +32,21 @@ def package(build, output):
         shutil.copy2(file, stage/file.name)
     licenses = stage/"licenses"
     shutil.copytree(ROOT/"anybandui"/"licenses", licenses)
-    deps = ROOT/"build-anybandui"/"_deps"
+    cache = {}
+    for line in (build/"CMakeCache.txt").read_text().splitlines():
+        if line and not line.startswith(("#", "//")) and "=" in line:
+            key, value = line.split("=", 1)
+            cache[key.split(":", 1)[0]] = value
+    def dependency(name):
+        override = cache.get("FETCHCONTENT_SOURCE_DIR_"+name.upper(), "")
+        return Path(override) if override else build/"_deps"/(name+"-src")
     for source, license_name in (("sdl3-src/LICENSE.txt", "SDL3.txt"),
                          ("imgui-src/LICENSE.txt", "Dear-ImGui.txt"),
                          ("json-src/LICENSE.MIT", "nlohmann-json.txt")):
-        shutil.copy2(deps/source, licenses/license_name)
+        folder, relative = source.split("/", 1)
+        shutil.copy2(dependency(folder.removesuffix("-src"))/relative, licenses/license_name)
     shutil.copy2(ROOT/"LICENSE", licenses/"AnybandUI-GPL-2.0.txt")
-    shutil.copy2(deps/"sdl3-src"/"src"/"video"/"stb_image.h", licenses/"stb_image.h")
+    shutil.copy2(dependency("sdl3")/"src"/"video"/"stb_image.h", licenses/"stb_image.h")
     (licenses/"Cousine-copyright.txt").write_text(
         "Cousine-Regular.ttf by Steve Matteson. Digitized data copyright (c) 2010 Google Corporation.\n"
         "Licensed under the SIL Open Font License 1.1; see Cousine-OFL.txt.\n")

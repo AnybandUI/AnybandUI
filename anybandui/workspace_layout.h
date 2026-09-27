@@ -447,6 +447,7 @@ struct WorkspaceLayout {
   if(a+b>usable) return usable*a/std::max(1.f,a+b);
   return std::clamp(usable*n.ratio,a,usable-b);
  }
+ float dock_guides_height() const { return ImGui::GetFrameHeightWithSpacing(); }
  float fitted_height(const Node &n,const Enabled &enabled,float width=0) const {
   if(!visible(n,enabled)) return 0;
   if(n.axis) {
@@ -462,6 +463,7 @@ struct WorkspaceLayout {
    if(h<=0) return 0; // A mixed group still needs a resizable content area.
    if(active<0 || p==n.active) { active=p; selected=h; }
   }
+  if(editing) selected=std::max(selected,dock_guides_height());
   // ImGui floors child rectangles to pixels; round up to avoid tiny scrollbars.
   return selected>0?std::ceil(selected+chrome_height(n,enabled))+1.f:0;
  }
@@ -480,6 +482,7 @@ struct WorkspaceLayout {
    const float content=panel_height(p,width);
    height=std::max(height,content>0?content:p==Messages?ImGui::GetFrameHeight():(p==Dungeon?10.f:p==Character?12.f:p==Inventory||p==Spells?8.f:5.f)*ImGui::GetFontSize());
   }
+  if(editing) height=std::max(height,dock_guides_height());
   return {minimum_width(n,enabled),std::ceil(height+chrome_height(n,enabled))+1.f};
  }
  // Resolve scrollbar space before drawing (or previewing) the tree. Waiting
@@ -620,8 +623,9 @@ struct WorkspaceLayout {
   if(editing && ImGui::GetDragDropPayload()) {
    ImGui::SetCursorScreenPos(guides_pos);
    ImGui::PushStyleColor(ImGuiCol_ChildBg,ImGui::GetStyleColorVec4(ImGuiCol_WindowBg));
-   ImGui::BeginChild("Dock guides",{0,ImGui::GetTextLineHeightWithSpacing()+ImGui::GetFrameHeightWithSpacing()},ImGuiChildFlags_None,ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);
-   ImGui::TextDisabled("Dock here");
+   ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding,ImVec2(0,0));
+   ImGui::BeginChild("Dock guides",{0,dock_guides_height()},ImGuiChildFlags_None,ImGuiWindowFlags_NoScrollbar|ImGuiWindowFlags_NoScrollWithMouse);
+   ImGui::PopStyleVar(); // Preview measurements must use the normal pane padding.
    const char *labels[]={"Tabs","Left","Right","Above","Below"};
    for(int e=0;e<5;++e) {
     if(e) ImGui::SameLine();

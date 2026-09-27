@@ -733,6 +733,11 @@ int main(int argc,char **argv) {
     check(measured.minimum(row,enabled,1000).y>=110,"Height measurement uses constrained split widths");
     measured.editing=true;
     check(measured.minimum(tabs,enabled,500).y>=character,"Editing preserves content and tab height");
+    auto tiny=measured.leaf({WorkspaceLayout::Status});
+    measured.compact_height=[](int,float){return 1.f;};
+    check(measured.fitted_height(tiny,enabled,500)>=measured.chrome_height(tiny,enabled)+measured.dock_guides_height(),"Tiny edit panes reserve a full docking guide row");
+    measured.editing=false;
+    check(measured.fitted_height(tiny,enabled,500)<measured.dock_guides_height()+measured.chrome_height(tiny,enabled),"Gameplay does not retain docking guide space");
     ImGui::End(); ImGui::Render();
    }
   ImGui::NewFrame(); ImGui::Begin("Options empty search"); option_draft.draw(); ImGui::End(); ImGui::Render();

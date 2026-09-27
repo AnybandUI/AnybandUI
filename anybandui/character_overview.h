@@ -220,7 +220,7 @@ struct CharacterOverview {
  }
  static int dungeon_columns(const json &p,float width) {
   const char *labels[]={"Depth","Light","Feel",""};
-  const std::string values[]={std::to_string(p.value("depth",0)),std::to_string(p.value("light",0)),p.value("feeling","—"),display_label(p.value("floor",""))};
+  const std::string values[]={std::to_string(p.value("depth",0)),std::to_string(p.value("light",0)),p.value("feeling","â€”"),display_label(p.value("floor",""))};
   float tile_width=0;
   for(int i=0;i<4;++i) tile_width=std::max(tile_width,ImGui::CalcTextSize(labels[i]).x+ImGui::CalcTextSize(values[i].c_str()).x+ImGui::GetFontSize()*(*labels[i]?1.4f:.8f)+2*ImGui::GetStyle().CellPadding.x+2);
   return width>=4*tile_width?4:2;
@@ -228,7 +228,7 @@ struct CharacterOverview {
  static float dungeon_height(const json &p,float width,bool headings=true) {
   const int columns=dungeon_columns(p,width);
   const char *labels[]={"Depth","Light","Feel",""};
-  const std::string values[]={std::to_string(p.value("depth",0)),std::to_string(p.value("light",0)),p.value("feeling","—"),display_label(p.value("floor",""))};
+  const std::string values[]={std::to_string(p.value("depth",0)),std::to_string(p.value("light",0)),p.value("feeling","â€”"),display_label(p.value("floor",""))};
   const auto &style=ImGui::GetStyle();
   const float cell=width/columns-2*style.CellPadding.x;
   float height=headings?AnybandUITheme::section_height()+style.ItemSpacing.y:0;

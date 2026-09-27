@@ -52,10 +52,10 @@ def main():
 
     original = run("original")
     probe = run("drag-guides", frames=7, input=drag([60, 790], [500, 400]))
-    stack_point = [probe["panel_rects"]["3"]["x"] + 38, probe["panel_rects"]["3"]["y"] + 72]
+    stack_point = [probe["panel_rects"]["3"]["x"] + 38, probe["panel_rects"]["3"]["y"] + 45]
     normal = run("normal", layout_edit=False)
     spells_point = [normal["panel_rects"]["3"]["x"] + 158, normal["panel_rects"]["3"]["y"] + 23]
-    docked = run("dock-right", input=drag([60, 790], [1260, 168]))
+    docked = run("dock-right", input=drag([60, 790], [1260, 131]))
     assert canonical(docked["root"]) != canonical(original["root"])
     assert leaf(docked["root"], 2) and not docked["floating"]
     stacked = run("stack-tabs", input=drag([60, 790], stack_point))
@@ -70,7 +70,7 @@ def main():
     assert split["root"]["ratio"] < original["root"]["ratio"]
     locked = run("locked", layout_edit=False, input=drag([normal_divider_x, 400], [980, 400]))
     assert locked["root"]["ratio"] == original["root"]["ratio"], "Locked dividers must not move"
-    cancelled = run("cancel", input=drag([60, 790], [1260, 168]) +
+    cancelled = run("cancel", input=drag([60, 790], [1260, 131]) +
                     [{"frame": 8, "mouse": [242, 53]}, {"frame": 9, "down": True}, {"frame": 10, "down": False}])
     assert canonical(cancelled["root"]) == canonical(original["root"]), "Cancel must restore geometry"
     switched = run("switch-tab", layout_edit=False, input=[
@@ -111,15 +111,15 @@ def main():
     limit = check_push("push-tracker-limit", 12, 8, 3, tracker_original, 10000)
     assert limit["panel_rects"]["3"]["h"] >= 8 * 18, "Inventory must retain its minimum height"
     assert split["undo_count"] == 1, "A complete divider drag must be one undo step"
-    undo = run("undo-docking", frames=14, input=drag([60, 790], [1260, 168]) + [
+    undo = run("undo-docking", frames=14, input=drag([60, 790], [1260, 131]) + [
         {"frame": 9, "mouse": [312, 53]}, {"frame": 10, "down": True}, {"frame": 11, "down": False}])
     assert canonical(undo["root"]) == canonical(original["root"]), "Undo button restores the previous docking"
-    redo = run("redo-docking", frames=20, input=drag([60, 790], [1260, 168]) + [
+    redo = run("redo-docking", frames=20, input=drag([60, 790], [1260, 131]) + [
         {"frame": 9, "mouse": [312, 53]}, {"frame": 10, "down": True}, {"frame": 11, "down": False},
         {"frame": 14, "mouse": [365, 53]}, {"frame": 15, "down": True}, {"frame": 16, "down": False}])
     assert canonical(redo["root"]) == canonical(docked["root"]), "Redo button reapplies the docking"
     for name, destination, delivered, label in [
-            ("preview-right", [1260, 168], docked, "Place right of Character"),
+            ("preview-right", [1260, 131], docked, "Place right of Character"),
             ("preview-stack", stack_point, stacked, "Stack with Inventory")]:
         preview = run(name, frames=7, input=drag([60, 790], destination))
         hint = preview["dock_preview"]
@@ -150,7 +150,7 @@ def main():
     compact_tree = split_node(1, .65, pane([0]), split_node(2, .85, pane([1, 11]), pane([3])))
     compact = run("compact-tabs", layout_edit=False, layout=custom(compact_tree))
     char_h = compact["panel_rects"]["1"]["h"]
-    assert 200 < char_h < 340, "Character tabs must fit content rather than the stored split ratio"
+    assert normal["panel_rects"]["1"]["h"] < char_h < 340, "Character tabs must fit content rather than the stored split ratio"
     small_tab = copy.deepcopy(compact_tree)
     small_tab["children"][1]["children"][0]["active"] = 11
     smaller = run("compact-dungeon-tab", layout_edit=False, layout=custom(small_tab))
@@ -170,7 +170,7 @@ def main():
     assert compact_float["panel_rects"]["1"]["h"] < 340, "Floating compact tabs must discard oversized saved heights"
     cramped = run("cramped-workspace", size=(1000, 600), layout_edit=False, layout=custom(mixed_tree))
     assert cramped["panel_rects"]["1"]["h"] >= char_h - 1, "A small workspace must retain compact content height"
-    overfull = run("overflow-workspace", size=(1000, 400), layout_edit=False, layout=custom(mixed_tree))
+    overfull = run("overflow-workspace", size=(1000, 400), scale=1.5, layout_edit=False, layout=custom(mixed_tree))
     assert overfull["panel_rects"]["1"]["h"] >= char_h - 1, "Insufficient total height must not proportionally squash Character"
     assert overfull["panel_rects"]["2"]["y"] + overfull["panel_rects"]["2"]["h"] > 400, "Overflow uses a scrollable workspace"
     mixed_float = run("mixed-small-float", layout_edit=False,
