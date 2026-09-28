@@ -15,8 +15,9 @@ shows **No supported Anyband binaries found**. Put a supported engine package
 under `build-ui-native/game/engines/` and click **Rescan**. Use the Engine picker
 to choose between installed packages. Font/audio assets are staged automatically.
 
-The reference engine is built separately from the `angband` repo's
-`4.2.6-anybandui` branch. It is not a build dependency of this project. Package
+The reference engine is built separately in `AnybandUI-AngbandAdapter`, against
+a pinned Angband `4.2-release` with a reviewed patch series. It is not a build
+dependency of this project. Package
 installation copies compiled files and engine data, never engine source.
 
 ```powershell

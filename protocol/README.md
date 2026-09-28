@@ -100,8 +100,9 @@ in a disposable profile. This is a smoke check, not full feature certification.
 An engine implementation must also pass native birth, inventory/equipment, spells,
 shops, targeting, continuation/death messages, save/load/replay, known-map purity,
 precise combat/motion events and its gameplay regression suite. The reference
-Angband implementation and 65 engine integration tests live in the separate
-`angband` repository on branch `4.2.6-anybandui`. Building AnybandUI never builds
+Angband implementation and its engine integration tests live in the separate
+`AnybandUI-AngbandAdapter` project, built against a pinned Angband `4.2-release`
+and explicit engine patches. Building AnybandUI never builds
 or requires that repository.
 
 Without a compatible engine the application still builds and opens normally,
