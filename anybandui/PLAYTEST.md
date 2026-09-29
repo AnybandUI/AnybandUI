@@ -4,8 +4,9 @@ Extract the entire ZIP to a folder, then open **AnybandUI.exe**.
 Do not launch it from inside the ZIP. No Python, Visual Studio or installer is
 needed. This build targets 64-bit Windows with a GPU supported by SDL3.
 
-Install a supported engine package under `engines/` beside the executable and
-click **Rescan**. Without an engine the window shows **No supported Anyband binaries found**.
+The complete release includes Angband under `engines/angband/`, ready to play.
+If using a frontend-only development package, install a supported engine under
+`engines/` beside the executable and click **Rescan**.
 Choose **New character**, or choose an existing character. The game follows
 Angband's rules: death ends that character's adventure. Opening a dead save
 lets you start again with the same starting build or create someone different.
@@ -39,9 +40,11 @@ was enabled. Include a screenshot or a copy of the affected save when useful.
 
 ## Build contents
 
-`fonts` and `audio` must stay next to AnybandUI.exe. Engines are installed separately under `engines`, with their manifest and game data kept together. `licenses` contains
+`fonts` and `audio` must stay next to AnybandUI.exe. The bundled engine lives under
+`engines/angband/`, with its manifest and game data kept together. `licenses` contains
 third-party notices. `source.zip` contains the corresponding source and build
-instructions. `manifest.json` lists SHA-256 hashes of the package contents.
+instructions. The engine has its own source archive and licences in its folder.
+`manifest.json` lists SHA-256 hashes of the complete release, including the engine.
 Microsoft Visual C++ release runtime DLLs are included beside the application.
 This is an unsigned playtest build, not a signed installer. macOS/Linux and
 clean-machine installation have not yet been manually certified.

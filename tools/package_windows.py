@@ -10,10 +10,12 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 
-def package(build, output):
+def package(build, output, *, name=None, runtime=None, source_files=None):
     build, output = build.resolve(), output.resolve()
     output.mkdir(parents=True, exist_ok=True)
-    name = "AnybandUI-Windows-" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    name = name or "AnybandUI-Windows-" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    if not name or name in (".", "..") or any(c not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-" for c in name):
+        raise ValueError("Package name must be a simple directory name")
     stage = output / name
     stage.mkdir()  # Never overwrite a previous package or someone else's files.
     game = build / "game"
@@ -22,11 +24,13 @@ def package(build, output):
     for folder in ("audio", "fonts"):
         shutil.copytree(game/folder, stage/folder)
     (stage/"engines").mkdir()
-    shutil.copy2(ROOT/"engines/README.md",stage/"engines/README.md")
+    shutil.copy2(ROOT/"docs/engines.md",stage/"engines/README.md")
     # App-local release runtimes: a clean PC does not need Visual Studio.
     candidates = sorted(Path("C:/Program Files/Microsoft Visual Studio").glob(
         "*/*/VC/Redist/MSVC/[0-9]*/x64/Microsoft.VC*.CRT"))
-    if not candidates:
+    if runtime is not None:
+        candidates = [Path(runtime)]
+    if not candidates or not list(candidates[-1].glob("*.dll")):
         raise RuntimeError("Install the Visual C++ x64 redistributable build tools before packaging")
     for file in candidates[-1].glob("*.dll"):
         shutil.copy2(file, stage/file.name)
@@ -52,10 +56,13 @@ def package(build, output):
         "Licensed under the SIL Open Font License 1.1; see Cousine-OFL.txt.\n")
     shutil.copy2(ROOT/"anybandui"/"PLAYTEST.md", stage/"START-HERE.md")
     # Bundle exact working-tree source alongside binaries, including local fixes.
-    tracked = subprocess.check_output(["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT).decode().split("\0")
+    tracked = source_files if source_files is not None else subprocess.check_output(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"], cwd=ROOT).decode().split("\0")
     with zipfile.ZipFile(stage/"source.zip", "w", zipfile.ZIP_DEFLATED) as source:
         for file in sorted(set(tracked)):
             path = ROOT/file
+            if not path.resolve().is_relative_to(ROOT.resolve()):
+                raise ValueError(f"Source path escapes the repository: {file}")
             if file and path.is_file() and not path.is_relative_to(stage) and not file.endswith(".pyc") and not file.startswith("screenshots/"):
                 source.write(path, "AnybandUI-source/"+file)
     manifest = {}
@@ -69,7 +76,11 @@ def package(build, output):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--build", type=Path, default=ROOT/"build-ui-native")
-    parser.add_argument("--output", type=Path, default=ROOT/"build-anybandui"/"packages")
+    parser.add_argument("--build", type=Path, default=ROOT/"build/dev")
+    parser.add_argument("--output", type=Path, default=ROOT/"build/components")
+    parser.add_argument("--name")
+    parser.add_argument("--runtime", type=Path)
+    parser.add_argument("--source-files", type=Path, help="JSON file list for an isolated source snapshot")
     args = parser.parse_args()
-    package(args.build, args.output)
+    package(args.build, args.output, name=args.name, runtime=args.runtime,
+            source_files=json.loads(args.source_files.read_text()) if args.source_files else None)

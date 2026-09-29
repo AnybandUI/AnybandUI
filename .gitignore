@@ -1,6 +1,5 @@
-build*/
-engines/*
-!engines/README.md
+/build/
+/dist/
 __pycache__/
 *.py[cod]
 .vs/

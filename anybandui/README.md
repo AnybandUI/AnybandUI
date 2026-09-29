@@ -3,8 +3,10 @@
 See the [project README](../README.md) for building and running this standalone
 frontend and the [engine contract](../protocol/README.md) for integration.
 
-`build.py` builds only the frontend and its tests. `package_windows.py` produces
-an engine-free Windows ZIP. `AnybandUI-AngbandAdapter` owns the reference engine's
+`tools/build.py` builds only the frontend and its tests into `build/dev`.
+`tools/release.py` produces one Windows ZIP with the UI and Angband installed.
+`tools/package_windows.py` produces the internal frontend-only component.
+`AnybandUI-AngbandAdapter` owns the reference engine's
 protocol implementation, tests and packaging. The sibling `angband` checkout
 contains the game and the generic interfaces required by that external adapter.
 See the adapter README for building and installing an engine package.
