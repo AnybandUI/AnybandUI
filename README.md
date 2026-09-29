@@ -21,8 +21,8 @@ dependency of this project. Package
 installation copies compiled files and engine data, never engine source.
 
 Package the frontend with `python -B anybandui/package_windows.py`. See the
-adapter README for engine validation. Previously documented readiness and
-protocol-check helpers are unavailable.
+[Windows playtest guide](anybandui/PLAYTEST.md) for manual checks and the
+adapter README for engine validation.
 
 The frontend ZIP deliberately ships without an engine. UI settings and engine
 saves are kept outside the installation directory. See [the protocol](protocol/README.md)
