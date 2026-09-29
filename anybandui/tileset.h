@@ -8,11 +8,11 @@
 // IDs match Angband's bundled lib/tiles/list.txt. PNGs and mappings remain
 // unmodified; the backend alone decides which artwork the player may see.
 struct TilesetLibrary {
- struct Set { const char *name,*file; int cell,overdraw_first=0,overdraw_last=0; };
+ struct Set { const char *name,*file; int cell,overdraw_first,overdraw_last; };
  inline static const std::array<Set,7> sets={{
-  {"ASCII","",0}, {"Original tiles","old/8x8.png",8},
-  {"Adam Bolt","adam-bolt/16x16.png",16}, {"David Gervais","gervais/32x32.png",32},
-  {"Nomad","nomad/8x16.png",16}, {"Shockbolt - Dark","shockbolt/64x64.png",64,27,31},
+  {"ASCII","",0,0,0}, {"Original tiles","old/8x8.png",8,0,0},
+  {"Adam Bolt","adam-bolt/16x16.png",16,0,0}, {"David Gervais","gervais/32x32.png",32,0,0},
+  {"Nomad","nomad/8x16.png",16,0,0}, {"Shockbolt - Dark","shockbolt/64x64.png",64,27,31},
   {"Shockbolt - Light","shockbolt/64x64.png",64,27,31}
  }};
  struct Atlas { SDL_GPUTexture *texture=nullptr; int width=0,height=0; bool tried=false; std::string error; };
