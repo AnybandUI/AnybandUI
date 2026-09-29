@@ -2,7 +2,8 @@
 
 This is the wire reference for the required full-v1 engine surface. The canonical
 compatibility requirements are in `protocol/full-v1.json` and `protocol/README.md`.
-Engine implementation and engine-specific tests live in the separate angband repo.
+The reference implementation and engine-specific integration tests belong to
+the separate AnybandUI-AngbandAdapter project. Angband supplies the game core.
 
 The backend is a local child process. UTF-8 JSON objects are separated by
 newlines on stdin/stdout; diagnostics go to stderr. Frames must be smaller

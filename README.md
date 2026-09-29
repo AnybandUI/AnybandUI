@@ -20,11 +20,9 @@ a pinned Angband `4.2-release` with a reviewed patch series. It is not a build
 dependency of this project. Package
 installation copies compiled files and engine data, never engine source.
 
-```powershell
-python -B anybandui/readiness.py
-python -B anybandui/package_windows.py
-python -B protocol/check_engine.py PATH/engine.anyband.json
-```
+Package the frontend with `python -B anybandui/package_windows.py`. See the
+adapter README for engine validation. Previously documented readiness and
+protocol-check helpers are unavailable.
 
 The frontend ZIP deliberately ships without an engine. UI settings and engine
 saves are kept outside the installation directory. See [the protocol](protocol/README.md)

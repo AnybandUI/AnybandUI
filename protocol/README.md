@@ -93,9 +93,9 @@ copied without overwrite into the vanilla family directory; originals remain.
 
 ## Conformance
 
-`python -B protocol/check_engine.py PATH/engine.anyband.json` checks the packaged
-process boundary, handshake, identity, required capabilities and launcher methods
-in a disposable profile. This is a smoke check, not full feature certification.
+The application startup handshake checks identity and required capabilities.
+The previously documented `protocol/check_engine.py` helper is unavailable;
+do not treat handshake success alone as full feature certification.
 
 An engine implementation must also pass native birth, inventory/equipment, spells,
 shops, targeting, continuation/death messages, save/load/replay, known-map purity,

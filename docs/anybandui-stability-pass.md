@@ -1,3 +1,6 @@
+Historical report: commands and results below describe the retired embedded backend.
+See AnybandUI-AngbandAdapter for the current build and validation workflow.
+
 # Stability and performance pass — 23 September 2026
 
 ## Results
