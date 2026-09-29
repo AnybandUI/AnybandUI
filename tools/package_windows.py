@@ -21,7 +21,7 @@ def package(build, output, *, name=None, runtime=None, source_files=None):
     game = build / "game"
     for file in ("AnybandUI.exe",):
         shutil.copy2(game/file, stage/file)
-    for folder in ("audio", "fonts"):
+    for folder in ("fonts",):
         shutil.copytree(game/folder, stage/folder)
     (stage/"engines").mkdir()
     shutil.copy2(ROOT/"docs/engines.md",stage/"engines/README.md")

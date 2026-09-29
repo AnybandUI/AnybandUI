@@ -4,7 +4,7 @@
     "major": 1,
     "minor": 0
   },
-  "profile": "full-v1",
+  "profile": "anyband-protocol",
   "max_frame_bytes": 4194304,
   "required_capabilities": {
     "state.player": 1,
@@ -16,7 +16,6 @@
     "prompts.basic": 1,
     "prompts.items": 1,
     "spells": 1,
-    "audio.events": 1,
     "session.replay": 1,
     "run.summary": 1,
     "journal": 1,

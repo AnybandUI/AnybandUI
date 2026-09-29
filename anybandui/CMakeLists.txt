@@ -3,6 +3,7 @@ include(FetchContent)
 set(SDL_SHARED OFF CACHE BOOL "" FORCE)
 set(SDL_STATIC ON CACHE BOOL "" FORCE)
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_AUDIO OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(SDL3 GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
     GIT_TAG 7f3ae3d57459e59943a4ecfefc8f6277ec6bf540)
 FetchContent_Declare(imgui GIT_REPOSITORY https://github.com/ocornut/imgui.git
@@ -46,24 +47,10 @@ add_executable(AnybandUI client.cpp)
 target_compile_features(AnybandUI PRIVATE cxx_std_17)
 target_compile_definitions(AnybandUI PRIVATE ANYBANDUI_FONT_FILE="${CMAKE_CURRENT_SOURCE_DIR}/fonts/Cousine-Regular.ttf")
 target_link_libraries(AnybandUI PRIVATE anybandui_crt)
-# Stage original audio beside the executable; no source-tree path at runtime.
-add_custom_target(anybandui-audio ALL
-    COMMAND ${CMAKE_COMMAND} -E remove_directory "$<TARGET_FILE_DIR:AnybandUI>/audio"
-    COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:AnybandUI>/audio"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different "${CMAKE_CURRENT_SOURCE_DIR}/audio/pack.json" "$<TARGET_FILE_DIR:AnybandUI>/audio/pack.json"
-)
-file(GLOB ANYBANDUI_AUDIO_SAMPLES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/audio/*.wav")
-foreach(sample IN LISTS ANYBANDUI_AUDIO_SAMPLES)
-    add_custom_command(TARGET anybandui-audio POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "${sample}" "$<TARGET_FILE_DIR:AnybandUI>/audio/")
-endforeach()
-add_custom_command(TARGET anybandui-audio POST_BUILD
+# Stage fonts beside the executable; no source-tree path at runtime.
+add_custom_target(anybandui-fonts ALL
     COMMAND ${CMAKE_COMMAND} -E copy_directory "${CMAKE_CURRENT_SOURCE_DIR}/fonts" "$<TARGET_FILE_DIR:AnybandUI>/fonts")
-add_dependencies(AnybandUI anybandui-audio)
-add_executable(anybandui-audio-tests EXCLUDE_FROM_ALL test_audio.cpp)
-target_compile_features(anybandui-audio-tests PRIVATE cxx_std_17)
-target_link_libraries(anybandui-audio-tests PRIVATE SDL3::SDL3 nlohmann_json::nlohmann_json)
-add_dependencies(anybandui-audio-tests anybandui-audio)
+add_dependencies(AnybandUI anybandui-fonts)
 if(WIN32)
     set_target_properties(AnybandUI PROPERTIES WIN32_EXECUTABLE TRUE)
 endif()

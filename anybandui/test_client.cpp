@@ -202,19 +202,15 @@ int main(int argc,char **argv) {
    check(!gains.find(potion),"Dropping or using the last carried stack clears its marker");
    gains.reset(); gains.update(snapshot); check(gains.pending.empty(),"Another session starts with a fresh baseline");
   }
-  Connection audio_events;
+  { auto assets=RuntimePaths::discover(std::filesystem::path(ANYBANDUI_FONTS_DIR).parent_path());
+    check(assets.missing().empty(),"Startup assets must not require an audio pack"); }
+  Connection activity_events;
   check(RestDialog::reply(0,100)=="&" && RestDialog::reply(1,100)=="*" && RestDialog::reply(2,100)=="!","Rest choices preserve native semantics");
   check(RestDialog::reply(3,1)=="1" && RestDialog::reply(3,9999)=="9999" && RestDialog::reply(3,0).empty() && RestDialog::reply(3,10000).empty(),"Rest turn bounds");
-  audio_events.receive({{"kind","event"},{"event","activity.changed"},{"data",{{"resting",true}}}});
-  check(audio_events.resting,"Rest activity starts indicator");
-  audio_events.receive({{"kind","event"},{"event","activity.changed"},{"data",{{"resting",false}}}});
-  check(!audio_events.resting,"Rest activity clears indicator");
-  for(int i=0;i<100;++i) audio_events.receive({{"kind","event"},{"event","sound.play"},{"data",{{"name","quaff"}}}});
-  check(audio_events.sound_cues.size()==16,"Sound burst queue must be bounded");
-  check(!audio_events.busy && audio_events.outgoing.empty(),"Sound cues must not change input readiness or issue requests");
-  AudioSettings audio_roundtrip; audio_roundtrip.enabled=false; audio_roundtrip.master=.31f;
-  AudioSettings audio_loaded; audio_loaded.load(audio_roundtrip.serialize());
-  check(!audio_loaded.enabled && audio_loaded.master==.31f,"Audio settings must roundtrip");
+  activity_events.receive({{"kind","event"},{"event","activity.changed"},{"data",{{"resting",true}}}});
+  check(activity_events.resting,"Rest activity starts indicator");
+  activity_events.receive({{"kind","event"},{"event","activity.changed"},{"data",{{"resting",false}}}});
+  check(!activity_events.resting,"Rest activity clears indicator");
   json run={{"player",{{"name","Test"},{"race","Elf"},{"class","Mage"},{"level",3}}},{"items",json::array()},{"messages",json::array({{{"text","You die."},{"count",1}}})},{"cause","a test"},{"ended","2026-09-23"}};
   RunHistory history;
   history.directory=std::string(argv[1])+"-runs";
@@ -521,7 +517,7 @@ int main(int argc,char **argv) {
    ui.layout.preset(1); ui.layout.saved["Test layout"]=ui.layout.arrangement();
   }
   // Legacy preferences acquire sensible defaults.
-  { std::ofstream out(path); out<<R"({"scale":1.25,"game_fraction":0.65})"; }
+  { std::ofstream out(path); out<<R"({"scale":1.25,"game_fraction":0.65,"audio":{"enabled":true,"master":0.8}})"; }
   ui.load_settings(); check(ui.scale==1.25f && !ui.fullscreen && ui.crt==0,"Legacy settings");
   check(ui.crt_strength==1,"Existing settings should default to Classic");
   ui.begin_settings(); ui.draft_scale=1.5f; ui.draft_crt=2; ui.draft_fullscreen=true;
@@ -544,7 +540,6 @@ int main(int argc,char **argv) {
   ui.draft_crt_strength=3; ui.draft_crt_settings.parts[Hum].enabled=true;
   check(!ui.crt_settings.parts[Hum].enabled,"Hum bar draft applied immediately");
   check(ui.scale==1.25f && ui.crt==0 && !ui.fullscreen,"Draft changed live settings");
-  ui.draft_audio_settings.master=.1f; ui.draft_audio_settings.enabled=false;
   ui.draft_fonts.interface_font="Hack-Regular.ttf"; ui.draft_theme.preset(2);
   check(!ui.theme_settings.custom,"Theme drafts must not change live settings");
   check(ui.font_settings.interface_font=="Nouveau_IBM.ttf","Font preview must not change the live interface");
@@ -552,7 +547,6 @@ int main(int argc,char **argv) {
   check(ui.draft_tileset==0,"Cancel must discard the tile choice");
   check(ui.draft_fonts.interface_font=="Nouveau_IBM.ttf","Cancel must discard font choices");
   check(!ui.draft_theme.custom,"Cancel must discard theme edits");
-  check(ui.draft_audio_settings.enabled && ui.draft_audio_settings.master==.8f,"Cancel must discard audio edits");
   check(!ui.draft_proceed_with_click,"Cancelled gameplay draft retained");
   check(!ui.draft_click_exits_look,"Cancelled look click draft retained");
   check(!ui.draft_quick_targeting,"Cancel retained quick targeting draft");
@@ -571,17 +565,16 @@ int main(int argc,char **argv) {
   ui.draft_quick_targeting=true;
   ui.draft_quickbar_enabled=true;
   ui.quickbar.profile="test-character"; ui.quickbar.slots()[0]=Quickbar::command_binding({{"id","core.hold"},{"label","Hold"}});
-  ui.draft_audio_settings.master=.43f; ui.draft_audio_settings.gameplay=.25f;
   ui.draft_fonts.interface_font="Hack-Regular.ttf"; ui.draft_fonts.dungeon_font="Flexi_IBM_VGA_True.ttf";
   ui.draft_theme.preset(3); ui.draft_theme.rounding=11; ui.draft_theme.invert_dungeon=true; ui.draft_theme.decorations=false;
   ui.draft_tileset=6;
   check(ui.apply_settings(nullptr),"Save settings");
+  { std::ifstream saved(path); check(!json::parse(saved).contains("audio"),"Saved settings must omit retired audio preferences"); }
   UI loaded{connection}; loaded.settings_path=path.string(); loaded.load_settings();
   check(loaded.tileset==6 && ui.tileset==6,"Tile selection must apply and persist");
   check(loaded.font_settings.interface_font=="Hack-Regular.ttf" && loaded.font_settings.dungeon()=="Flexi_IBM_VGA_True.ttf","Both font choices persist");
   check(loaded.theme_settings.serialize()==ui.draft_theme.serialize(),"Theme colours and styling persist");
   check(!loaded.scene_animation,"Scene transitions setting persists");
-  check(loaded.audio_settings.master==.43f && loaded.audio_settings.gameplay==.25f,"Audio volumes must persist after Save and Close");
   check(loaded.proceed_with_click,"Gameplay option did not persist");
   check(loaded.click_exits_look,"Click exits look did not persist");
   check(loaded.quick_targeting,"Quick targeting did not persist");
@@ -1144,11 +1137,13 @@ int main(int argc,char **argv) {
   }
   Connection replay; replay.connected=true; replay.replay_save="Hero";
   auto hello_id=replay.send("hello");
-  const json valid_hello={{"protocol",AnybandEngine::contract()["protocol"]},{"profile","full-v1"},
+  const json valid_hello={{"protocol",AnybandEngine::contract()["protocol"]},{"profile","anyband-protocol"},
    {"max_frame_bytes",4194304},{"engine",{{"id","test.engine"},{"version","1"},{"save_compatibility","test-1"}}},
    {"capabilities",AnybandEngine::contract()["required_capabilities"]}};
   replay.receive({{"id",hello_id},{"result",valid_hello}});
   check(AnybandEngine::validate_hello(valid_hello).empty(),"Full contract must validate");
+  auto unknown_profile=valid_hello; unknown_profile["profile"]="unknown-profile";
+  check(!AnybandEngine::validate_hello(unknown_profile).empty(),"Unknown profile must reject the engine");
   auto missing_cap=valid_hello; missing_cap["capabilities"].erase("presentation.camera");
   check(!AnybandEngine::validate_hello(missing_cap).empty(),"Missing full-integration features must reject the engine");
   auto old_protocol=valid_hello; old_protocol["protocol"]={{"major",0},{"minor",1}};
@@ -1161,13 +1156,17 @@ int main(int argc,char **argv) {
   check(AnybandEngine::discover(engine_test).packages.empty(),"No engines must be a normal state");
   fs::create_directories(engine_test/"sample"/"data");
   {std::ofstream file(engine_test/"sample"/"engine.bin");file<<"test";}
-  json manifest={{"manifest_version",1},{"profile","full-v1"},{"protocol",AnybandEngine::contract()["protocol"]},
+  json manifest={{"manifest_version",1},{"profile","anyband-protocol"},{"protocol",AnybandEngine::contract()["protocol"]},
    {"engine",{{"id","test.engine"},{"name","Test"},{"version","1"},{"save_compatibility","test-1"}}},
    {"executable","engine.bin"},{"data_directory","data"}};
   {std::ofstream file(engine_test/"sample"/"engine.anyband.json");file<<manifest;}
   auto discovered=AnybandEngine::discover(engine_test);
   check(discovered.packages.size()==1 && discovered.errors.empty(),"Valid package must be discovered");
   check(AnybandEngine::validate_hello(valid_hello,&discovered.packages[0]).empty(),"Package identity must match handshake");
+  manifest["profile"]="unknown-profile";
+  {std::ofstream file(engine_test/"sample"/"engine.anyband.json");file<<manifest;}
+  check(AnybandEngine::discover(engine_test).packages.empty(),"Unknown package profile must reject the engine");
+  manifest["profile"]="anyband-protocol";
   manifest["executable"]="../../outside.exe";
   {std::ofstream file(engine_test/"sample"/"engine.anyband.json");file<<manifest;}
   discovered=AnybandEngine::discover(engine_test);
@@ -1282,7 +1281,7 @@ int main(int argc,char **argv) {
   for(int mode=0;mode<4;++mode) {
    rest.mode=mode;
    ImGui::NewFrame(); ImGui::Begin("Rest dialog test");
-   rest.draw(audio_events,false);
+   rest.draw(activity_events,false);
    ImGui::End(); ImGui::Render();
   }
   check(!hover.dwell(true,"first",5,6,1),"Tooltip must not appear immediately");

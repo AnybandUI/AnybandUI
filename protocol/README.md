@@ -1,7 +1,9 @@
-# AnybandUI engine surface 1.0
+# Anyband Protocol 1.0
 
-This repository owns the engine/frontend contract. Supported engines implement
-**full-v1**, defined by `full-v1.json` and `wire-v1.md`. The frontend requires every
+This repository owns **Anyband Protocol**, the engine/frontend contract. Its
+compatibility profile is `anyband-protocol`, defined by `anyband-protocol.json`
+and `wire-v1.md`. The protocol version is recorded separately as major/minor
+(currently 1.0). The frontend requires every
 listed capability; there are no reduced-integration support tiers. An engine with
 no spellcasting for the current character still implements the spells methods and
 returns appropriate empty/ineligible results. Intentional native-engine terminal
@@ -17,7 +19,7 @@ single package. Discovery reads manifests without launching arbitrary executable
 ```json
 {
   "manifest_version": 1,
-  "profile": "full-v1",
+  "profile": "anyband-protocol",
   "engine": {
     "id": "org.angband.angband",
     "name": "Angband",
@@ -51,9 +53,9 @@ DLL injection or in-process engine linkage exists in the frontend.
 
 The client sends `hello` offering `{major:1, minor:0}`, a 4194304-byte frame limit,
 and native inventory/equipment selection. The response must return that selected
-version, `profile: "full-v1"`, its manifest-matching engine identity/version/save
+version, `profile: "anyband-protocol"`, its manifest-matching engine identity/version/save
 compatibility, the negotiated frame limit, and every capability/version in
-`full-v1.json`. Failure or a ten-second timeout prevents gameplay. State/events
+`anyband-protocol.json`. Failure or a ten-second timeout prevents gameplay. State/events
 must not arrive before the handshake completes. The frontend accepts no game
 state from an unverified engine. The default pre-negotiation frame limit is 1 MiB.
 
@@ -82,7 +84,7 @@ and teleportation are distinct events. Full-level camera data obeys remembered
 knowledge and visibility, and clicks use world coordinates.
 
 The frontend owns layout, themes, fonts, input presentation, native controls,
-rendering, audio playback and visual effects. The engine supplies scalar snapshots
+rendering and visual effects. The engine supplies scalar snapshots
 and events, never raw pointers. Terminal presentation preserves nested original
 interfaces and their input contexts, including extension screens such as quests.
 

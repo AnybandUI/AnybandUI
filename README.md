@@ -1,7 +1,7 @@
 # AnybandUI
 
 A standalone native frontend for engines implementing the
-[AnybandUI full-v1 protocol](protocol/README.md). Angband is built by the
+[Anyband Protocol](protocol/README.md). Angband is built by the
 separate `AnybandUI-AngbandAdapter` project.
 
 ## Build a complete release
@@ -24,7 +24,7 @@ See [the local release guide](docs/releasing.md) for prerequisites and validatio
 python -B tools/build.py
 ```
 
-Run `build/dev/game/AnybandUI.exe`. This incremental build stages fonts and audio;
+Run `build/dev/game/AnybandUI.exe`. This incremental build stages fonts;
 install an engine under `build/dev/game/engines/` to play. Without an engine it
 shows **No supported Anyband binaries found**. Click **Rescan** after installation.
 

@@ -74,7 +74,6 @@ static bool matches(std::string text, std::string term) {
 #include "engine_options.h"
 #include "game_tuning.h"
 #include "keybinding_editor.h"
-#include "audio_player.h"
 #include "inventory_changes.h"
 #include "level_feedback.h"
 #include "floor_items.h"
@@ -115,7 +114,6 @@ struct Connection {
  SceneTransitions transitions;
  InventoryChanges inventory_changes;
  LevelFeedback level_feedback;
- std::vector<std::string> sound_cues;
  RenderGrid game_grid;
  std::unique_ptr<BackendReader> reader;
  std::unique_ptr<SDL_Process,decltype(&SDL_DestroyProcess)> process{nullptr,SDL_DestroyProcess};
@@ -246,11 +244,6 @@ struct Connection {
    if(name=="equipment.open") { equipment_requested=true; return; }
    if(name=="inventory.open") { inventory_requested=true; return; }
    if(name=="activity.changed") { resting=j.at("data").value("resting",false); return; }
-   if(name=="sound.play") {
-    auto cue=AudioPlayer::engine_cue(j.at("data").value("name",""));
-    if(!cue.empty() && sound_cues.size()<16) sound_cues.push_back(cue);
-    return;
-   }
    if(name=="state.changed" && j.at("data").contains("run")) {
     loading.clear();
     if(run_report.is_null()) {
@@ -597,8 +590,6 @@ struct UI {
  int settings_page=0;
  int crt=0, draft_crt=0; // Persisted IDs: 0 off, 1 dungeon, 2 full, 3 main window.
  int crt_strength=1, draft_crt_strength=1;
- AudioSettings audio_settings{}, draft_audio_settings{};
- AudioPlayer audio;
  CrtSettings crt_settings{}, draft_crt_settings{};
  TilesetLibrary tiles;
  int tileset=0,draft_tileset=0;
@@ -658,7 +649,6 @@ struct UI {
    quick_targeting=j.value("quick_targeting",false);
    quickbar_enabled=j.value("quickbar_enabled",false);
    quickbar.load(j.value("quickbar_profiles",json::object()));
-   audio_settings.load(j.value("audio",json::object()));
    movement_animation=j.value("movement_animation",true); blink_animation=j.value("blink_animation",true);
    projectile_animation=j.value("projectile_animation",true);
    combat_animation=j.value("combat_animation",true);
@@ -677,10 +667,10 @@ struct UI {
    if(j.contains("crt_components")) crt_settings.load(j.at("crt_components"));
   } catch (...) { c.notice("Settings could not be read; using defaults."); }
  }
- bool write_settings(float zoom,bool full,int effect,int strength,const CrtSettings &settings,bool low,bool death,bool proceed,bool exit_look,bool quick,bool bar,const AudioSettings *sound=nullptr,const bool *combat=nullptr,const bool *sleep=nullptr,const bool *fear=nullptr,const bool *level=nullptr,const bool *projectiles=nullptr,const bool *movement=nullptr,const bool *blink=nullptr,const bool *scene=nullptr,const FontSettings *fonts=nullptr,const ThemeSettings *theme=nullptr,const bool *glow=nullptr,const DungeonCameraSettings *camera=nullptr,const PresenceSettings *presence_options=nullptr,const int *tile_choice=nullptr) {
+ bool write_settings(float zoom,bool full,int effect,int strength,const CrtSettings &settings,bool low,bool death,bool proceed,bool exit_look,bool quick,bool bar,const bool *combat=nullptr,const bool *sleep=nullptr,const bool *fear=nullptr,const bool *level=nullptr,const bool *projectiles=nullptr,const bool *movement=nullptr,const bool *blink=nullptr,const bool *scene=nullptr,const FontSettings *fonts=nullptr,const ThemeSettings *theme=nullptr,const bool *glow=nullptr,const DungeonCameraSettings *camera=nullptr,const PresenceSettings *presence_options=nullptr,const int *tile_choice=nullptr) {
   const std::string temporary=settings_path+".tmp";
   std::ofstream out(temporary);
-  out << json{{"tileset",tile_choice?*tile_choice:tileset},{"presence",(presence_options?*presence_options:presence_settings).serialize()},{"camera",(camera?*camera:camera_settings).serialize()},{"item_glow",glow?*glow:item_glow},{"theme",(theme?*theme:theme_settings).serialize()},{"layout",layout.serialize()},{"fonts",(fonts?*fonts:font_settings).serialize()},{"scene_animation",scene?*scene:scene_animation},{"movement_animation",movement?*movement:movement_animation},{"blink_animation",blink?*blink:blink_animation},{"projectile_animation",projectiles?*projectiles:projectile_animation},{"audio",(sound?*sound:audio_settings).serialize()},{"scale",zoom},{"game_fraction",game_fraction},{"fullscreen",full},{"crt",effect},{"crt_strength",strength},{"crt_components",settings.serialize()},{"level_animation",level?*level:level_animation},{"fear_animation",fear?*fear:fear_animation},{"sleep_animation",sleep?*sleep:sleep_animation},{"combat_animation",combat?*combat:combat_animation},{"low_health_animation",low},{"death_animation",death},{"proceed_with_click",proceed},{"click_exits_look",exit_look},{"quick_targeting",quick},{"quickbar_enabled",bar},{"quickbar_profiles",quickbar.profiles}}.dump(2);
+  out << json{{"tileset",tile_choice?*tile_choice:tileset},{"presence",(presence_options?*presence_options:presence_settings).serialize()},{"camera",(camera?*camera:camera_settings).serialize()},{"item_glow",glow?*glow:item_glow},{"theme",(theme?*theme:theme_settings).serialize()},{"layout",layout.serialize()},{"fonts",(fonts?*fonts:font_settings).serialize()},{"scene_animation",scene?*scene:scene_animation},{"movement_animation",movement?*movement:movement_animation},{"blink_animation",blink?*blink:blink_animation},{"projectile_animation",projectiles?*projectiles:projectile_animation},{"scale",zoom},{"game_fraction",game_fraction},{"fullscreen",full},{"crt",effect},{"crt_strength",strength},{"crt_components",settings.serialize()},{"level_animation",level?*level:level_animation},{"fear_animation",fear?*fear:fear_animation},{"sleep_animation",sleep?*sleep:sleep_animation},{"combat_animation",combat?*combat:combat_animation},{"low_health_animation",low},{"death_animation",death},{"proceed_with_click",proceed},{"click_exits_look",exit_look},{"quick_targeting",quick},{"quickbar_enabled",bar},{"quickbar_profiles",quickbar.profiles}}.dump(2);
   out.close();
   return bool(out) && SDL_RenamePath(temporary.c_str(),settings_path.c_str());
  }
@@ -694,7 +684,6 @@ struct UI {
   draft_tileset=tileset;
   draft_camera=camera_settings;
   draft_fonts=font_settings; draft_theme=theme_settings;
-  draft_audio_settings=audio_settings;
   engine_options.reset(); settings_saving=false; saving_bindings=false;
   keybinding_editor.reset(); c.bindings_result=nullptr; c.bindings_saved=nullptr; c.bindings_request.clear();
   if(c.capabilities.value("keybindings",0)>0 && c.state.contains("player")) c.bindings_request=c.send("keybindings.get");
@@ -722,7 +711,7 @@ struct UI {
   if(draft_fullscreen!=fullscreen && !SDL_SetWindowFullscreen(window,draft_fullscreen)) {
    settings_error=SDL_GetError(); return false;
   }
-  if(!write_settings(draft_scale,draft_fullscreen,draft_crt,draft_crt_strength,draft_crt_settings,draft_low_animation,draft_death_animation,draft_proceed_with_click,draft_click_exits_look,draft_quick_targeting,draft_quickbar_enabled,&draft_audio_settings,&draft_combat_animation,&draft_sleep_animation,&draft_fear_animation,&draft_level_animation,&draft_projectile_animation,&draft_movement_animation,&draft_blink_animation,&draft_scene_animation,&draft_fonts,&draft_theme,&draft_item_glow,&draft_camera,&draft_presence,&draft_tileset)) {
+  if(!write_settings(draft_scale,draft_fullscreen,draft_crt,draft_crt_strength,draft_crt_settings,draft_low_animation,draft_death_animation,draft_proceed_with_click,draft_click_exits_look,draft_quick_targeting,draft_quickbar_enabled,&draft_combat_animation,&draft_sleep_animation,&draft_fear_animation,&draft_level_animation,&draft_projectile_animation,&draft_movement_animation,&draft_blink_animation,&draft_scene_animation,&draft_fonts,&draft_theme,&draft_item_glow,&draft_camera,&draft_presence,&draft_tileset)) {
    if(draft_fullscreen!=fullscreen) SDL_SetWindowFullscreen(window,fullscreen);
    settings_error="Settings could not be saved. Please try again."; return false;
   }
@@ -730,7 +719,6 @@ struct UI {
   if(camera_settings.fixed_size!=draft_camera.fixed_size || camera_settings.fixed_width!=draft_camera.fixed_width) dungeon_camera.zoom=1;
   camera_settings=draft_camera; tileset=draft_tileset;
   font_settings=draft_fonts; theme_settings=draft_theme;
-  audio_settings=draft_audio_settings; audio.configure(audio_settings,window_active);
   projectile_animation=draft_projectile_animation;
   movement_animation=draft_movement_animation; blink_animation=draft_blink_animation;
   combat_animation=draft_combat_animation;
@@ -801,16 +789,16 @@ struct UI {
    ImGui::BeginDisabled(settings_saving);
    const float footer=ImGui::GetFrameHeightWithSpacing()+ImGui::GetStyle().ItemSpacing.y+
     (settings_error.empty()?0:ImGui::CalcTextSize(settings_error.c_str(),nullptr,false,ImGui::GetContentRegionAvail().x).y+ImGui::GetStyle().ItemSpacing.y);
-   const char *pages[]={"Interaction","Keyboard","Game rules","Display","Theme","Fonts","CRT effects","Animations","Audio","Game tuning"};
-   const char *descriptions[]={"Mouse controls and shortcuts.","Keybindings and command shortcuts.","Angband preferences for the current character.","Window mode, interface size and dungeon camera.","Interface colours, contrast and styling.","Interface and dungeon fonts.","CRT effects and intensity.","Movement, combat and environmental effects.","Sound effects and volume.","Game constants. Changes apply on the next launch."};
+   const char *pages[]={"Interaction","Keyboard","Game rules","Display","Theme","Fonts","CRT effects","Animations","Game tuning"};
+   const char *descriptions[]={"Mouse controls and shortcuts.","Keybindings and command shortcuts.","Angband preferences for the current character.","Window mode, interface size and dungeon camera.","Interface colours, contrast and styling.","Interface and dungeon fonts.","CRT effects and intensity.","Movement, combat and environmental effects.","Game constants. Changes apply on the next launch."};
    ImGui::BeginChild("Settings body",ImVec2(0,-footer),ImGuiChildFlags_None,ImGuiWindowFlags_NoScrollbar);
    const bool sidebar=ImGui::GetContentRegionAvail().x>ImGui::GetFontSize()*40;
    if(sidebar) {
     ImGui::BeginChild("Settings navigation",ImVec2(ImGui::GetFontSize()*12,0),ImGuiChildFlags_Borders);
-    for(int i:{0,1,2,9,3,4,5,6,7,8}) {
-     if(i==0 || i==3 || i==8) {
+    for(int i:{0,1,2,8,3,4,5,6,7}) {
+     if(i==0 || i==3) {
       if(i) ImGui::Spacing();
-      ImGui::TextDisabled("%s",i==0?"PLAY":i==3?"PRESENTATION":"SOUND"); ImGui::Separator();
+      ImGui::TextDisabled("%s",i==0?"PLAY":"PRESENTATION"); ImGui::Separator();
      }
      if(ImGui::Selectable(pages[i],settings_page==i,0,ImVec2(0,ImGui::GetFrameHeight()))) settings_page=i;
     }
@@ -822,7 +810,7 @@ struct UI {
     ImGui::PopStyleColor();
     ImGui::EndChild(); ImGui::SameLine();
    } else {
-    ImGui::SetNextItemWidth(-1); ImGui::Combo("##Settings page",&settings_page,pages,10);
+    ImGui::SetNextItemWidth(-1); ImGui::Combo("##Settings page",&settings_page,pages,9);
    }
    ImGui::PushID(settings_page);
    ImGui::BeginChild("Settings contents",ImVec2(0,0));
@@ -830,7 +818,7 @@ struct UI {
    ImGui::PushTextWrapPos(0); ImGui::TextDisabled("%s",descriptions[settings_page]); ImGui::PopTextWrapPos(); ImGui::Spacing();
    bool editing_bindings=false;
    {
-    if(settings_page==9) game_tuning.draw();
+    if(settings_page==8) game_tuning.draw();
     if(settings_page==3) {
      AnybandUITheme::section("Dungeon artwork");
      ImGui::SetNextItemWidth(-1);
@@ -931,22 +919,6 @@ struct UI {
 
     }
     if(settings_page==1) { editing_bindings=true; keybinding_editor.draw();  }
-    if(settings_page==8) {
-     ImGui::Checkbox("Sound enabled",&draft_audio_settings.enabled);
-     ImGui::Spacing(); AnybandUITheme::section("Mix");
-     ImGui::BeginDisabled(!draft_audio_settings.enabled);
-     auto volume=[](const char *label,float &value) {
-      float percent=value*100;
-      if(ImGui::SliderFloat(label,&percent,0,100,"%.0f%%",ImGuiSliderFlags_AlwaysClamp)) value=percent/100;
-     };
-     volume("Master volume",draft_audio_settings.master);
-     volume("Gameplay",draft_audio_settings.gameplay);
-     volume("Interface",draft_audio_settings.interface_volume);
-     ImGui::EndDisabled();
-     ImGui::Spacing(); ImGui::TextWrapped("Audio mutes when AnybandUI and its detached windows are unfocused.");
-     if(!audio.error.empty()) ImGui::TextWrapped("Audio unavailable: %s",audio.error.c_str());
-
-    }
     if(settings_page==7) {
      AnybandUITheme::section("Atmosphere & milestones");
      ImGui::Checkbox("Low health glitch",&draft_low_animation);
@@ -2220,7 +2192,7 @@ int main(int argc,char **argv) {
  }
  const auto missing=paths.missing();
  if(check_assets) {
-  std::cout<<"backend="<<paths.backend.string()<<"\ndata="<<paths.data.string()<<"\nfont="<<paths.font.string()<<"\naudio="<<paths.audio.string()<<"\n";
+  std::cout<<"backend="<<paths.backend.string()<<"\ndata="<<paths.data.string()<<"\nfont="<<paths.font.string()<<"\n";
   for(const auto &path:missing) std::cerr<<"Missing: "<<path<<"\n";
   return missing.empty()?0:1;
  }
@@ -2299,8 +2271,6 @@ int main(int argc,char **argv) {
  ui.settings_path=(fs::path(user)/"settings.json").string(); ui.load_settings();
  DetachedPanels detached(gpu,window,paths.font.parent_path());
  ui.layout.native_windows_available=true;
- if(!ui.audio.open(paths.audio)) connection.notice("Audio unavailable: "+ui.audio.error);
- ui.audio.configure(ui.audio_settings,true);
  if(ui.fullscreen && !SDL_SetWindowFullscreen(window,true)) { ui.fullscreen=false; connection.notice(std::string("Fullscreen unavailable: ")+SDL_GetError()); }
  std::string ini=(fs::path(user)/"layout.ini").string(); io.IniFilename=ini.c_str();
  select_engine();
@@ -2311,9 +2281,6 @@ int main(int argc,char **argv) {
   const auto readiness=connection.state.value("readiness","");
   connection.poll();
   ui.window_active=detached.focused();
-  ui.audio.configure(ui.audio_settings,ui.window_active);
-  for(const auto &cue:connection.sound_cues) ui.audio.play(cue);
-  connection.sound_cues.clear();
   if(!connection.run_report.is_null() && !ui.run_report_started) {
    ui.run_history.directory=fs::path(ui.engine_user)/"run-history";
    ui.run_history.begin(connection.run_report);
@@ -2338,7 +2305,6 @@ int main(int argc,char **argv) {
   }
   if(ui.quit_after_run && !connection.connected) { connection.closed=true; break; }
   if(connection.restart_ready && connection.run_report.is_null()) {
-   ui.audio.clear();
    crt_renderer.reset_history();
    health_glitch=HealthGlitch{};
    // A saved return-to-menu or normal post-game completion has exited cleanly.
@@ -2415,8 +2381,6 @@ int main(int argc,char **argv) {
   io.FontDefault=fonts.get(ui.font_settings.interface_font);
   ImGui::NewFrame(); ui.draw(window);
   ui.window_active=detached.focused();
-  ui.audio.configure(ui.audio_settings,ui.window_active);
-  if(!ui.grid_focus && !ImGui::GetIO().WantTextInput && ((ImGui::GetIO().MouseClicked[0] && GImGui->ActiveId && GImGui->ActiveIdIsJustActivated) || GImGui->NavActivateId)) ui.audio.play("ui");
   ImGui::Render();
   auto *render_data=ImGui::GetDrawData();
   connection.flush_input(); // Dispatch this frame's input before waiting for presentation.
@@ -2446,7 +2410,7 @@ int main(int argc,char **argv) {
   if(SDL_GetWindowFlags(window)&SDL_WINDOW_MINIMIZED) SDL_Delay(20);
  }
  detached.shutdown();
- ui.tiles.shutdown(); ui.audio.close();
+ ui.tiles.shutdown();
  SDL_WaitForGPUIdle(gpu); crt_renderer.shutdown(); ImGui_ImplSDLGPU3_Shutdown(); ImGui_ImplSDL3_Shutdown(); ImGui::DestroyContext();
  connection.close_process();
  SDL_ReleaseWindowFromGPUDevice(gpu,window); SDL_DestroyGPUDevice(gpu); SDL_DestroyWindow(window); SDL_Quit(); return 0;

@@ -15,7 +15,7 @@ lets you start again with the same starting build or create someone different.
 - The message ribbon means the game is waiting for acknowledgement.
 - Use the right-hand Inventory, Spells and other tabs for native controls.
 - **Save and…** offers save, return to menu, and quit choices.
-- **Settings** controls gameplay, keybindings, animations, audio and CRT effects.
+- **Settings** controls gameplay, keybindings, animations and CRT effects.
 - Start with CRT Off if you want to compare responsiveness.
 
 Existing installations retain their original save/settings folder automatically.
@@ -40,7 +40,7 @@ was enabled. Include a screenshot or a copy of the affected save when useful.
 
 ## Build contents
 
-`fonts` and `audio` must stay next to AnybandUI.exe. The bundled engine lives under
+`fonts` must stay next to AnybandUI.exe. The bundled engine lives under
 `engines/angband/`, with its manifest and game data kept together. `licenses` contains
 third-party notices. `source.zip` contains the corresponding source and build
 instructions. The engine has its own source archive and licences in its folder.

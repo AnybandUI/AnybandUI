@@ -58,7 +58,6 @@ struct EngineOptions {
    bool heading=false;
    for(auto &row:entries) {
     const auto id=row.at("id").get<std::string>(),label=row.at("label").get<std::string>();
-    if(id=="use_sound") continue; // AnybandUI sound is controlled in the Audio tab.
     const auto note=help(id);
     if(std::string(note.group)!=group || !matches(label+" "+id+" "+note.text+" "+group,search)) continue;
     if(!heading) { ImGui::Spacing(); AnybandUITheme::section(group); heading=true; }

@@ -45,7 +45,7 @@ dist/<run>/
 ```
 
 The final ZIP has a short `AnybandUI/` root and includes its executable, fonts,
-audio, runtime DLLs, licences, UI source archive and build identity. Its
+runtime DLLs, licences, UI source archive and build identity. Its
 `engines/angband/` folder includes the engine executable, game data, manifest,
 licences and corresponding engine/adapter source archive. The root checksum
 manifest covers the complete combined package, including the engine.
@@ -60,7 +60,7 @@ Angband with its patches, and builds everything in fresh directories. SDL3,
 ImGui and JSON sources download on first use; cache contents are hashed before
 reuse. Runtime DLLs come from the chosen Visual Studio toolchain.
 
-It runs client, offscreen GPU, dummy-device audio, adapter map and packaging
+It runs client, offscreen GPU, adapter map and packaging
 checks. Map test pass totals are checked as well as exit status. Source snapshots
 and dependency hashes are checked again before packaging. Component ZIPs are
 verified before assembly; the final ZIP is verified and extracted, both bundled

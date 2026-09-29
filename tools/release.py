@@ -18,7 +18,7 @@ import zipfile
 ROOT = Path(__file__).resolve().parents[1]
 PENDING = [
     "Manual gameplay, save/quit/relaunch/reload using the extracted candidate.",
-    "Clean-machine installation and real audio/device checks.",
+    "Clean-machine installation checks.",
     "Live transport/gameplay integration coverage: earlier helpers remain quarantined; not run.",
 ]
 
@@ -281,7 +281,7 @@ def main():
     for repo in (ROOT, adapter):
         if git(repo, "status", "--porcelain", "--untracked-files=all").strip() and not args.allow_dirty:
             raise RuntimeError(f"{repo.name} has uncommitted files; commit or pass --allow-dirty.")
-    if json.loads((ROOT / "protocol/full-v1.json").read_text()) != json.loads((adapter / "full-v1.json").read_text()):
+    if json.loads((ROOT / "protocol/anyband-protocol.json").read_text()) != json.loads((adapter / "anyband-protocol.json").read_text()):
         raise RuntimeError("UI and adapter protocol contracts differ")
     pinned = json.loads((adapter / "upstream.json").read_text())["commit"]
     git(angband, "cat-file", "-e", pinned + "^{commit}")
@@ -302,7 +302,7 @@ def main():
         ui, adapter_source = directory / "source/ui", directory / "source/adapter"
         run.info["sources"] = {"ui": snapshot(ROOT, ui, args.allow_dirty),
                                "adapter": snapshot(adapter, adapter_source, args.allow_dirty)}
-        if json.loads((ui / "protocol/full-v1.json").read_text()) != json.loads((adapter_source / "full-v1.json").read_text()):
+        if json.loads((ui / "protocol/anyband-protocol.json").read_text()) != json.loads((adapter_source / "anyband-protocol.json").read_text()):
             raise RuntimeError("Snapshot protocol contracts differ")
         source_list = directory / "ui-source-files.json"
         write_json(source_list, sorted(run.info["sources"]["ui"]["files"]))
@@ -316,14 +316,13 @@ def main():
         run.info["engine_source"] = json.loads((engine / ".adapter-source.json").read_text())
         run.command("configure-ui", [cmake, "-S", ui, "-B", ui_build, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                                     f"-DCMAKE_MAKE_PROGRAM={ninja}", *[f"-DFETCHCONTENT_SOURCE_DIR_{key.upper()}={value['directory']}" for key, value in deps.items()]], directory)
-        run.command("build-ui", [cmake, "--build", ui_build, "--parallel", "4", "--target", "AnybandUI", "anybandui-client-tests", "anybandui-gpu-tests", "anybandui-audio-tests"], directory)
+        run.command("build-ui", [cmake, "--build", ui_build, "--parallel", "4", "--target", "AnybandUI", "anybandui-client-tests", "anybandui-gpu-tests"], directory)
         run.command("configure-engine", [cmake, "-S", engine, "-B", engine_build, "-G", "NMake Makefiles", "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
                                         f"-DANGBAND_EXTERNAL_FRONTEND={adapter_source}", "-DSUPPORT_BORG=OFF", "-DSUPPORT_SPOIL_FRONTEND=OFF"], directory)
         run.command("build-engine", [cmake, "--build", engine_build, "--target", "OurExecutable", "anybandui-map-tests"], directory)
         game = ui_build / "game"
         run.command("client-tests", [game / "anybandui-client-tests.exe", directory / "test-settings.json"], directory)
         run.command("gpu-tests", [game / "anybandui-gpu-tests.exe"], directory)
-        run.command("audio-tests", [game / "anybandui-audio-tests.exe", game / "audio"], directory)
         run.command("map-tests", [engine_build / "game/anybandui-map-tests.exe", "-v"], engine_build / "game", native_total=5)
         run.command("packaging-tests", [*py, "-m", "unittest", "discover", "-s", "tests", "-p", "test_*.py", "-v"], adapter_source)
         # Source must still be identical before creating source archives.
@@ -357,7 +356,7 @@ def main():
         adapter_files = run.info["sources"]["adapter"]["files"]
         source_roots = {"src", "tests", "tools", "patches", "vendor", "docs"}
         source_files = {".clang-format", ".gitignore", "LICENSE", "README.md", "frontend.cmake",
-                        "engine.anyband.json.in", "full-v1.json", "upstream.json"}
+                        "engine.anyband.json.in", "anyband-protocol.json", "upstream.json"}
         expected = {"adapter/" + path: digest for path, digest in adapter_files.items()
                     if path in source_files or Path(path).parts[0] in source_roots}
         expected.update({"angband/" + path: digest for path, digest in engine_files.items()

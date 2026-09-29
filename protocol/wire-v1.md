@@ -1,14 +1,14 @@
-# AnybandUI engine protocol 1.0
+# Anyband Protocol 1.0 wire reference
 
-This is the wire reference for the required full-v1 engine surface. The canonical
-compatibility requirements are in `protocol/full-v1.json` and `protocol/README.md`.
+This is the wire reference for the required Anyband Protocol engine surface. The canonical
+compatibility requirements are in `protocol/anyband-protocol.json` and `protocol/README.md`.
 The reference implementation and engine-specific integration tests belong to
 the separate AnybandUI-AngbandAdapter project. Angband supplies the game core.
 
 The backend is a local child process. UTF-8 JSON objects are separated by
 newlines on stdin/stdout; diagnostics go to stderr. Frames must be smaller
 than 1 MiB before negotiation. Clients offering `max_frame_bytes: 4194304`
-receive a 4 MiB limit, required by full-v1 for the full-level camera. Other
+receive a 4 MiB limit, required by Anyband Protocol for the full-level camera. Other
 clients retain the 1 MiB limit. One process hosts one game. Networking is not supported.
 
 ```json
