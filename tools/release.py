@@ -354,7 +354,7 @@ def main():
             "AnybandUI-source/" + path: digest for path, digest in run.info["sources"]["ui"]["files"].items()})
         engine_files = tree_hashes(engine)
         adapter_files = run.info["sources"]["adapter"]["files"]
-        source_roots = {"src", "tests", "tools", "patches", "vendor", "docs"}
+        source_roots = {"src", "tests", "tools", "vendor", "docs"}
         source_files = {".clang-format", ".gitignore", "LICENSE", "README.md", "frontend.cmake",
                         "engine.anyband.json.in", "anyband-protocol.json", "upstream.json"}
         expected = {"adapter/" + path: digest for path, digest in adapter_files.items()

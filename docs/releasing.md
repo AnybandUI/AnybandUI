@@ -56,7 +56,7 @@ Only the combined ZIP is placed in `dist/<run>/packages/`.
 ## What is checked
 
 The workflow freezes the selected UI and adapter sources, prepares pinned
-Angband with its patches, and builds everything in fresh directories. SDL3,
+Angband from the commit of our fork pinned in the adapter's `upstream.json`, and builds everything in fresh directories. SDL3,
 ImGui and JSON sources download on first use; cache contents are hashed before
 reuse. Runtime DLLs come from the chosen Visual Studio toolchain.
 
