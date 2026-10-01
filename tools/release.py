@@ -256,6 +256,24 @@ class Run:
             self.save()
 
 
+def cleanup_workspace(directory, work_root, keep=False):
+    """Remove only this run, after its deliverables and reports are preserved."""
+    if keep:
+        print(f"Build workspace retained: {directory}", flush=True)
+        return
+    try:
+        target = directory.resolve()
+        if directory.is_symlink() or directory.is_junction() or target.parent != work_root.resolve():
+            raise OSError(f"Workspace is not a direct child of the work root: {directory}")
+        shutil.rmtree(target)
+    except OSError as error:
+        # A locked intermediate file must not invalidate a finished candidate.
+        print(f"Warning: workspace cleanup incomplete: {directory}: {error}. "
+              "The finished candidate is unaffected; remove remaining files manually.", file=sys.stderr)
+    else:
+        print(f"Build workspace removed: {directory}", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--adapter", type=Path, default=ROOT.parent / "AnybandUI-AngbandAdapter")
@@ -265,6 +283,7 @@ def main():
     parser.add_argument("--cache", type=Path, default=ROOT / "build/dependencies", help="Shared pinned dependency cache")
     parser.add_argument("--version", default="candidate")
     parser.add_argument("--allow-dirty", action="store_true", help="Snapshot local edits and label the result a development build")
+    parser.add_argument("--keep-workspace", action="store_true", help="Keep intermediate files after success (failed builds are always kept)")
     parser.add_argument("--preflight", action="store_true", help="Check repositories and toolchain without building or downloading")
     args = parser.parse_args()
     if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", args.version):
@@ -294,6 +313,8 @@ def main():
     output = args.output.resolve() / name
     if directory == output or output.is_relative_to(directory) or directory.is_relative_to(output):
         raise RuntimeError("Build workspace and finished output must be separate directories")
+    if args.cache.resolve().is_relative_to(directory):
+        raise RuntimeError("Dependency cache must be outside this release workspace")
     directory.mkdir(parents=True, exist_ok=False)
     run = Run(directory, env, {"candidate": name, "development": args.allow_dirty, "toolchain": tools,
                                "python": sys.version, "angband_commit": pinned})
@@ -388,6 +409,9 @@ def main():
         run.save()
         print(f"Build stopped. Details: {directory / 'validation.md'}", file=sys.stderr)
         raise
+    # Outside the failure handler: cleanup may partially remove the workspace.
+    # All checks and report copies must succeed before reaching this point.
+    cleanup_workspace(directory, args.work_root, args.keep_workspace)
 
 
 if __name__ == "__main__":

@@ -38,6 +38,64 @@ class ReleaseTests(unittest.TestCase):
         result = release.verify_archive(self.archive(), self.root / "installed", "manifest.json")
         self.assertEqual((result / "app.exe").read_bytes(), b"built binary")
 
+    def test_cleanup_removes_only_current_workspace(self):
+        workspace = self.root / "build/releases/current"
+        workspace.mkdir(parents=True)
+        (workspace / "intermediate").write_bytes(b"temporary")
+        preserved = ["build/releases/older/log", "build/dev/game.exe",
+                     "build/dependencies/source", "build/profiles/character",
+                     "dist/current/packages/release.zip", "dist/current/reports/log",
+                     "dist/current/playtest/AnybandUI.exe"]
+        for name in preserved:
+            path = self.root / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"keep")
+        release.cleanup_workspace(workspace, workspace.parent)
+        self.assertFalse(workspace.exists())
+        for name in preserved:
+            self.assertEqual((self.root / name).read_bytes(), b"keep")
+
+    def test_keep_workspace_preserves_intermediates(self):
+        workspace = self.root / "current"
+        workspace.mkdir()
+        (workspace / "intermediate").write_bytes(b"keep")
+        release.cleanup_workspace(workspace, self.root, keep=True)
+        self.assertEqual((workspace / "intermediate").read_bytes(), b"keep")
+
+    def test_cleanup_refuses_paths_outside_work_root(self):
+        workspace = self.root / "outside"
+        workspace.mkdir()
+        with patch.object(release.sys, "stderr", new_callable=io.StringIO) as stderr:
+            release.cleanup_workspace(workspace, self.root / "build/releases")
+        self.assertTrue(workspace.exists())
+        self.assertIn("not a direct child", stderr.getvalue())
+
+    def test_locked_workspace_warns_without_failing_release(self):
+        workspace = self.root / "current"
+        workspace.mkdir()
+        with patch.object(release.shutil, "rmtree", side_effect=PermissionError("locked")), \
+                patch.object(release.sys, "stderr", new_callable=io.StringIO) as stderr:
+            release.cleanup_workspace(workspace, self.root)
+        self.assertTrue(workspace.exists())
+        self.assertIn("cleanup incomplete", stderr.getvalue())
+        self.assertIn("finished candidate is unaffected", stderr.getvalue())
+
+    def test_failed_release_retains_workspace_without_cleanup(self):
+        work_root = self.root / "work"
+        args = ["release.py", "--work-root", str(work_root),
+                "--output", str(self.root / "dist"), "--cache", str(self.root / "cache")]
+        with patch.object(release.sys, "argv", args), \
+                patch.object(release, "toolchain", return_value=({}, {})), \
+                patch.object(release, "git", return_value=b""), \
+                patch.object(release, "snapshot", side_effect=RuntimeError("snapshot failed")), \
+                patch.object(release, "cleanup_workspace") as cleanup:
+            with self.assertRaisesRegex(RuntimeError, "snapshot failed"):
+                release.main()
+        cleanup.assert_not_called()
+        workspace, = work_root.iterdir()
+        self.assertEqual(json.loads((workspace / "build-info.json").read_text())["status"], "failed")
+        self.assertIn("snapshot failed", (workspace / "validation.md").read_text())
+
     def component(self, name, files, manifest_name):
         path = self.root / (name + ".zip")
         hashes = {key: hashlib.sha256(value).hexdigest() for key, value in files.items()}

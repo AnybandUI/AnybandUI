@@ -22,6 +22,7 @@ candidate. This includes non-ignored untracked files, so review them before shar
 ```powershell
 python -B tools/release.py --version 0.1.0-rc1
 python -B tools/release.py --allow-dirty
+python -B tools/release.py --keep-workspace
 python -B tools/release.py --preflight
 ```
 
@@ -35,7 +36,7 @@ build/
   dev/                  Incremental UI development build
   dependencies/         Shared, verified dependency source cache
   releases/<run>/       Source snapshots, compiler output, component packages,
-                        combined-package staging and diagnostic logs
+                        combined-package staging and diagnostic logs (temporary)
   profiles/<run>/       Isolated profiles when using the playtest command
 dist/<run>/
   packages/             ONE combined distribution ZIP
@@ -97,9 +98,18 @@ folder. Development and release builds share `build/dependencies/`.
 and `--cache` relocates dependencies. Generated paths inside a repository must be
 Git-ignored. Release build and distribution directories must be separate.
 
-Once a candidate is accepted, its workspace in `build/releases/` can be removed;
-the ZIP, extracted copy and reports in `dist/` stand on their own. Keep any profiles
-you care about. Deleting the dependency cache is safe but causes another download.
+After all automated checks pass and reports and logs are copied to `dist/`, the
+script removes only that run's workspace in `build/releases/`. The ZIP, extracted
+playtest copy and reports remain in `dist/`, ready for manual validation.
+Use `--keep-workspace` to retain intermediate files after success; this is independent
+of `--allow-dirty`, which controls whether uncommitted source changes are included.
+Failed builds always keep their workspace. If cleanup cannot finish (for example,
+because a file is locked), the script warns and leaves the finished candidate usable.
+
+Automatic cleanup does not prune older runs, development builds, dependency caches,
+or saved-game profiles. The dependency cache must be outside the current release
+workspace. Keep any profiles you care about. Deleting the dependency cache is safe
+but causes another download.
 Migrated historical fixtures and logs, if present, are retained in `build/history/`.
 
 Run workflow regression checks with:

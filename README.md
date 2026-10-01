@@ -16,6 +16,8 @@ Produces **one ready-to-play ZIP containing the UI and Angband** under
 `dist/<run>/packages/`, plus an extracted copy in `dist/<run>/playtest/AnybandUI/`
 and reports in `dist/<run>/reports/`. Nothing is published automatically.
 Use `--allow-dirty` to make a development candidate from uncommitted changes.
+Successful runs remove their temporary release workspace; use `--keep-workspace`
+to retain it for debugging. Failed runs always retain their workspace.
 See [the local release guide](docs/releasing.md) for prerequisites and validation.
 
 ## Develop the frontend
